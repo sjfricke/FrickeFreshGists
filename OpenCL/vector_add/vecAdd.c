@@ -2,28 +2,32 @@
 #include <stdlib.h>
 #include <math.h>
 #include <CL/opencl.h>
- 
-// OpenCL kernel. Each work item takes care of one element of c
-const char *kernelSource =                                       "\n" \
-"#pragma OPENCL EXTENSION cl_khr_fp64 : enable                    \n" \
-"__kernel void vecAdd(  __global double *a,                       \n" \
-"                       __global double *b,                       \n" \
-"                       __global double *c,                       \n" \
-"                       const unsigned int n)                    \n" \
-"{                                                               \n" \
-"    //Get our global thread ID                                  \n" \
-"    int id = get_global_id(0);                                  \n" \
-"                                                                \n" \
-"    //Make sure we do not go out of bounds                      \n" \
-"    if (id < n)                                                 \n" \
-"        c[id] = a[id] + b[id];                                  \n" \
-"}                                                               \n" \
-                                                                "\n" ;
- 
+
+// 500kb limit on keneral files
+#define MAX_SOURCE_SIZE 500000
+
+// helper to get files source instead of inline strings
+void getKernel(char* file_name, char** source_str, size_t* source_size) {
+  FILE *fp = fopen(file_name, "r");
+  if (!fp) {
+    fprintf(stderr, "Failed to load in kernel source\n");
+    exit(1);
+  }
+
+  *source_str = (char*)malloc(MAX_SOURCE_SIZE);
+  *source_size = fread(*source_str, 1, MAX_SOURCE_SIZE, fp);
+  fclose(fp);
+}
+
 int main( int argc, char* argv[] )
 {
     // Length of vectors
     unsigned int n = 100000;
+
+    // Kernel source variables
+    char* vecAdd_source;
+    char* vecAdd_filename = "./vecAdd.cl";
+    size_t vecAdd_filesize;
  
     // Host input vectors
     double *h_a;
@@ -43,7 +47,7 @@ int main( int argc, char* argv[] )
     cl_command_queue queue;           // command queue
     cl_program program;               // program
     cl_kernel kernel;                 // kernel
- 
+    
     // Size, in bytes, of each vector
     size_t bytes = n*sizeof(double);
  
@@ -82,9 +86,13 @@ int main( int argc, char* argv[] )
     queue = clCreateCommandQueue(context, device_id, 0, &err);
  
     // Create the compute program from the source buffer
+    getKernel(vecAdd_filename, &vecAdd_source, &vecAdd_filesize);
+
     program = clCreateProgramWithSource(context, 1,
-                            (const char **) & kernelSource, NULL, &err);
- 
+					(const char **) &vecAdd_source,
+					(const size_t*) &vecAdd_filesize,
+					&err);
+     
     // Build the program executable 
     clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
  
