@@ -1,6 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <stdio.h>
 #include <CL/opencl.h>
 
 const char *kernel_source =
@@ -52,8 +51,8 @@ int main( int argc, char* argv[] )
     int i;
     for( i = 0; i < n; i++ )
     {
-        h_a[i] = sinf(i)*sinf(i);
-        h_b[i] = cosf(i)*cosf(i);
+        h_a[i] = 0 + i;
+        h_b[i] = 0 - i;
     }
  
     size_t globalSize, localSize;
@@ -63,8 +62,8 @@ int main( int argc, char* argv[] )
     localSize = 64;
  
     // Number of total work items - localSize must be devisor
-    globalSize = ceil(n/(float)localSize)*localSize;
- 
+    globalSize = 100032; // hardcoded to prevent needing math.h
+
     // Bind to platform
     err = clGetPlatformIDs(1, &cpPlatform, NULL);
  
@@ -115,7 +114,7 @@ int main( int argc, char* argv[] )
     clEnqueueReadBuffer(queue, d_c, CL_TRUE, 0,
                                 bytes, h_c, 0, NULL, NULL );
  
-    //Sum up vector c and print result divided by n, this should equal 1 within error
+    //Sum up vector c and print result divided by n, this should equal 0 within error
     double sum = 0;
     for(i=0; i<n; i++)
         sum += h_c[i];
