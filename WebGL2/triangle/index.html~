@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <title>FrickeFresh WebGL 2</title>
+    <style>
+      body {
+        margin: 0;
+      }
+      canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+  </body>
+  <script src="../utils/webgl-utils.js"></script>
+  <script src="../utils/webgl-lessons-helper.js"></script>
+  <script src="main.js"></script>
+</html>
