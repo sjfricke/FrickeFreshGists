@@ -1,0 +1,17 @@
+packager main
+
+import (
+
+)
+
+func main() {
+
+	myChannel := make(chan int)
+
+	go func() {
+
+		myChannel <- 42
+	}()
+
+	<- myChannel
+}

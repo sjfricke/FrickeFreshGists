@@ -7,6 +7,7 @@ There are **many** time I want to say `Let me send you an example` and its too b
 ## TOC
 - [C](./C) //todo add
 - [CUDA](./CUDA) //todo add
+- [Go](./Go) // todo add
 - [HTML_CSS](./HTML_CSS) //todo add
 - [JavaScript](./JavaScript) //todo add
 - [NodeJS](./NodeJS) //todo add
