@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"reflect"
 )
 
 func main() {
@@ -17,4 +18,7 @@ func main() {
 	if error != nil { log.Fatal(error);}
 
 	log.Printf("Width: %d - Height: %d", image.Width, image.Height)
+
+	imageColor := image.ColorModel
+	log.Println(reflect.TypeOf(imageColor))
 }

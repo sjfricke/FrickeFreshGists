@@ -5,6 +5,7 @@ import (
 	"os"
 	"image"
 	"image/jpeg"
+	"image/color"
 )
 
 func main() {
@@ -19,26 +20,30 @@ func main() {
 	defer file.Close()
 
 	// decode image
-	imageSrc, _, error := image.Decode(file)
+	imageSrc, error := jpeg.Decode(file)
 	if error != nil { log.Fatal(error);}
 
-	bounds := imageSrc.Bounds()
+	imageRect := imageSrc.Bounds()
 
-	w, h := bounds.Max.X, bounds.Max.Y
+	w, h := imageRect.Max.X, imageRect.Max.Y
 	log.Printf("W: %d, H: %d", w, h)
 
-	// Grey scale
-	gray := image.NewGray(image.Rect(0, 0, w, h))
+	// change color
+	var imageRGBA *image.RGBA = image.NewRGBA(imageRect)
+	var RGBAColor color.RGBA
 	for x := 0; x < w; x++ {
 		for y := 0; y < h; y++ {
 			oldColor := imageSrc.At(x, y)
-			gray.Set(x, y, oldColor)
+			RGBAColor = imageRGBA.ColorModel().Convert(oldColor).(color.RGBA)
+			RGBAColor.G = 0
+			RGBAColor.B = 0
+			imageRGBA.SetRGBA(x, y, RGBAColor)
 		}
 	}
 		
 	// set write out and encode
 	outPath, error := os.Create(os.Args[2])
 	if error != nil { log.Fatal(error);}
-	jpeg.Encode(outPath, gray, nil)
+	jpeg.Encode(outPath, imageRGBA, nil)
 	
 }
