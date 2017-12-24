@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="utils/picogl.js"></script>
+    <script src="utils/gl-matrix-min.js"></script>
+</head>
+<body>
+    <canvas id="webgl-canvas"></canvas>
+    <script type="shader/vertex" id="vertex-shader">
+        #version 300 es
+ 
+        layout(location=0) in vec3 aPosition;
+        layout(location=1) in vec3 aVelocity;
+        layout(location=2) in vec3 aColor;
+         
+        layout(std140) uniform Mass {
+            vec4 mass1Position;
+            vec4 mass2Position;
+            vec4 mass3Position;
+            float mass1GM;
+            float mass2GM;
+            float mass3GM;
+        };
+         
+        out vec3 tfPosition;
+        out vec3 tfVelocity;
+        out vec3 vColor;
+        void main() {
+            vec3 position = aPosition;
+            vec3 velocity = aVelocity;
+         
+            vec3 massVec = mass1Position.xyz - position;
+            float r2 = max(0.01, dot(massVec, massVec));
+            vec3 acceleration = mass1GM * normalize(massVec) / r2;
+         
+            massVec = mass2Position.xyz - position;
+            r2 = max(0.01, dot(massVec, massVec));
+            acceleration += mass2GM * normalize(massVec) / r2;
+         
+            massVec = mass3Position.xyz - position;
+            r2 = max(0.01, dot(massVec, massVec));
+            acceleration += mass3GM * normalize(massVec) / r2;
+         
+            velocity += acceleration;
+            position += velocity;
+         
+            tfPosition = position;
+            tfVelocity = velocity;
+         
+            vColor = aColor;
+            gl_PointSize = 2.0;
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+    <script type="shader/fragment" id="fragment-shader">
+        #version 300 es
+        precision highp float;
+         
+        in vec3 vColor;
+         
+        out vec4 fragColor;
+        void main() {
+            float alpha = 0.3;
+            fragColor = vec4(vColor * alpha, alpha);
+        }
+    </script>
+    <script>
+        var canvas = document.getElementById("webgl-canvas");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        var app = PicoGL.createApp(canvas)
+        .clearColor(0.0, 0.0, 0.0, 1.0)
+        .blend()
+        .blendFunc(PicoGL.ONE, PicoGL.ONE_MINUS_SRC_ALPHA);
+
+        var vsSource = document.getElementById("vertex-shader").text.trim();
+        var fsSource = document.getElementById("fragment-shader").text.trim();
+        var program = app.createProgram(vsSource, fsSource, ["tfPosition", "tfVelocity"]);
+
+        var NUM_PARTICLES = 20000;
+        var positionData = new Float32Array(NUM_PARTICLES * 3);
+        var colorData = new Float32Array(NUM_PARTICLES * 3);
+        for (var i = 0; i < NUM_PARTICLES; ++i) {
+            var vec3i = i * 3;
+            positionData[vec3i] = Math.random() * 2 - 1;
+            positionData[vec3i + 1] = Math.random() * 2 - 1;
+            positionData[vec3i + 2] = Math.random() * 2 - 1;
+            colorData[vec3i] = Math.random();
+            colorData[vec3i + 1] = Math.random();
+            colorData[vec3i + 2] = Math.random();
+        }
+
+        var positionsA = app.createVertexBuffer(PicoGL.FLOAT, 3, positionData);
+        var velocitiesA = app.createVertexBuffer(PicoGL.FLOAT, 3, positionData.length);
+        var positionsB = app.createVertexBuffer(PicoGL.FLOAT, 3, positionData.length);
+        var velocitiesB = app.createVertexBuffer(PicoGL.FLOAT, 3, positionData.length);
+
+        var colors = app.createVertexBuffer(PicoGL.FLOAT, 3, colorData);
+
+        var vertexArrayA = app.createVertexArray()
+        .vertexAttributeBuffer(0, positionsA)
+        .vertexAttributeBuffer(1, velocitiesA)
+        .vertexAttributeBuffer(2, colors);
+
+        var vertexArrayB = app.createVertexArray()
+        .vertexAttributeBuffer(0, positionsB)
+        .vertexAttributeBuffer(1, velocitiesB)
+        .vertexAttributeBuffer(2, colors);
+
+        var transformFeedbackA = app.createTransformFeedback()
+        .feedbackBuffer(0, positionsA)
+        .feedbackBuffer(1, velocitiesA);
+
+        var transformFeedbackB = app.createTransformFeedback()
+        .feedbackBuffer(0, positionsB)
+        .feedbackBuffer(1, velocitiesB);
+
+        var massUniforms = app.createUniformBuffer([
+            PicoGL.FLOAT_VEC4,
+            PicoGL.FLOAT_VEC4,
+            PicoGL.FLOAT_VEC4,
+            PicoGL.FLOAT,
+            PicoGL.FLOAT,
+            PicoGL.FLOAT
+        ]).set(0, new Float32Array([
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            1.0
+        ])).set(1, new Float32Array([
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            1.0
+        ])).set(2, new Float32Array([
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            Math.random() * 2.0 - 1.0,
+            1.0
+        ]))
+        .set(3, Math.random() / 30000)
+        .set(4, Math.random() / 30000)
+        .set(5, Math.random() / 30000)
+        .update();
+
+        var drawCallA = app.createDrawCall(program, vertexArrayA, PicoGL.POINTS)
+        .transformFeedback(transformFeedbackB)
+        .uniformBlock("Mass", massUniforms);
+
+        var drawCallB = app.createDrawCall(program, vertexArrayB, PicoGL.POINTS)
+        .transformFeedback(transformFeedbackA)
+        .uniformBlock("Mass", massUniforms);
+        
+        var currentDrawCall = drawCallA;
+        function draw() {      
+            app.clear();
+            currentDrawCall.draw();
+            currentDrawCall = currentDrawCall === drawCallA ? drawCallB : drawCallA;
+            requestAnimationFrame(draw);
+        }
+        requestAnimationFrame(draw);
+    </script>
+</body>
