@@ -11,6 +11,7 @@ There are **many** time I want to say `Let me send you an example` and its too b
 - [HTML_CSS](./HTML_CSS) //todo add
 - [JavaScript](./JavaScript) //todo add
 - [NodeJS](./NodeJS) //todo add
-- [OpenCL](./OpenCL) //todo add
+- [OpenCL](./OpenCL)
+- [Rust](./Rust)
 - [Vulkan](./Vulkan) //todo add
 - [WebGL2](./WebGL2)
